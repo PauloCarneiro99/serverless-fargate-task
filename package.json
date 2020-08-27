@@ -1,0 +1,11 @@
+{
+  "name": "serverless-fargate-paulinho",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.739.0"
+  }
+}
