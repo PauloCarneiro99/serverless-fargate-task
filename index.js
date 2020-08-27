@@ -6,6 +6,9 @@ class ServerlessFargateTaskPlugin {
   constructor(serverless, options) {
     this.serverless = serverless
     this.options = options
+    this.service = this.serverless.service.service
+
+    this.params = this.getParams()
 
     AWS.config.apiVersions = {
       ecs: '2014-11-13',
@@ -14,7 +17,8 @@ class ServerlessFargateTaskPlugin {
     this.ecs = new AWS.ECS()
 
     this.hooks = {
-      'after:deploy:deploy': this.deploy.bind(this)
+      'after:deploy:deploy': this.deploy.bind(this),
+      'remove:remove': this.remove.bind(this)
     }
   }
 
@@ -74,7 +78,7 @@ class ServerlessFargateTaskPlugin {
           ],
           requiresCompatibilities: ['FARGATE'],
           networkMode: "awsvpc",
-          family: fargateTask.name,
+          family: `${this.service}-${fargateTask.name}`,
           taskRoleArn: fargateTask.taskRoleArn,
           executionRoleArn: fargateTask.executionRoleArn,
           volumes: []
@@ -85,16 +89,28 @@ class ServerlessFargateTaskPlugin {
   }
 
   async deploy() {
-    this.log('Starting fargate task register')
-    var params = this.getParams()
-    for (let taskParam of params) {
+    this.log('Starting fargate task register deploy')
+    for (let taskParam of this.params) {
       try {
         await this.ecs.registerTaskDefinition(taskParam).promise()
       } catch (e) {
         this.error(`Error registering task: ${e}`)
       }
     }
-    this.log('Leaving fargate task register')
+    this.log('Leaving fargate task register deploy')
+  }
+
+  async remove() {
+    this.log('Starting fargate task register remove')
+    for (let { family } of this.params) {
+      var { taskDefinitionArns } = await this.ecs.listTaskDefinitions(
+        { familyPrefix: family, sort: 'DESC' }
+      ).promise()
+      for (let taskArn of taskDefinitionArns) {
+        await this.ecs.deregisterTaskDefinition({ taskDefinition: taskArn }).promise()
+      }
+    }
+    this.log('Leaving fargate task register remove')
   }
 
 }
