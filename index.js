@@ -1,37 +1,60 @@
 'use strict';
 
 const AWS = require('aws-sdk')
-AWS.config.apiVersions = {
-  ecs: '2014-11-13',
-};
 
 class ServerlessFargateTaskPlugin {
   constructor(serverless, options) {
     this.serverless = serverless
     this.options = options
 
+    AWS.config.apiVersions = {
+      ecs: '2014-11-13',
+    }
     AWS.config.update({ region: this.serverless.service.provider.region })
     this.ecs = new AWS.ECS()
 
     this.hooks = {
       'after:deploy:deploy': this.deploy.bind(this)
-    };
+    }
+  }
+
+  error(message) {
+    throw new Error(message)
+  }
+
+  log(message) {
+    this.serverless.cli.log('Serverless Fargate Task ', message)
+  }
+
+  checkEnvironment(env) {
+    if (env) {
+      if (!(env instanceof Array)) this.error('Environment must be an array')
+      for (let record of env) {
+        if (!(record instanceof Object) || !('name' in record && 'value' in record))
+          this.error('Environment must be an array of Objects with name and value')
+      }
+    }
+  }
+
+  validateSingleInput(taskParam) {
+    if (!('name' in taskParam)) this.error('Fargate task without a name')
+    if (!'image' in taskParam) this.error('Image param is required')
+    if (!('taskRoleArn' in taskParam) || !('executionRoleArn' in taskParam)) this.error('Role is required')
+    if ('command' in taskParam && !(taskParam.command instanceof Array)) this.error('command must be an array')
+    this.checkEnvironment(taskParam.environment)
   }
 
   validateInput(fargate) {
-    if (!fargate) {
-      this.serverless.cli.log('No fargate options provided')
-      throw new Error('No fargate options provided');
-    }
+    if (!fargate) this.error('No fargate options provided')
+    if (!(fargate instanceof Array)) this.error('Fargate is expected to be an array')
 
-    if (!(fargate instanceof Array)) {
-      this.serverless.cli.log('Fargate is expected to be an array')
-      throw new Error('Fargate is expected to be an array');
+    for (let taskParam of fargate) {
+      this.validateSingleInput(taskParam)
     }
   }
 
   getParams() {
-    const { fargate } = this.serverless.service.custom || {};
+    const { fargate } = this.serverless.service.custom || {}
     this.validateInput(fargate)
 
     var configs = []
@@ -62,12 +85,16 @@ class ServerlessFargateTaskPlugin {
   }
 
   async deploy() {
-    this.serverless.cli.log('Starting fargate task register')
+    this.log('Starting fargate task register')
     var params = this.getParams()
     for (let taskParam of params) {
-      await this.ecs.registerTaskDefinition(taskParam).promise()
+      try {
+        await this.ecs.registerTaskDefinition(taskParam).promise()
+      } catch (e) {
+        this.error(`Error registering task: ${e}`)
+      }
     }
-    this.serverless.cli.log('Leaving fargate task register')
+    this.log('Leaving fargate task register')
   }
 
 }
