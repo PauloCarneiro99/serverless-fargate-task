@@ -1,10 +1,18 @@
 {
   "name": "serverless-fargate-task",
   "version": "1.0.0",
-  "description": "Serverless plugin to register a fargate task",
+  "description": "This plugin helps you create a new fargate task definition using the serverless framework.",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.739.0"
+  },
+  "devDependencies": {},
   "repository": {
     "type": "git",
-    "url": "git://github.com/PauloCarneiro99/serverless-fargate-task"
+    "url": "git+https://github.com/PauloCarneiro99/serverless-fargate-task.git"
   },
   "keywords": [
     "serverless",
@@ -14,10 +22,10 @@
     "fargate",
     "fargate-task"
   ],
-  "main": "index.js",
   "author": "Paulo Carneiro",
   "license": "ISC",
-  "dependencies": {
-    "aws-sdk": "^2.739.0"
-  }
+  "bugs": {
+    "url": "https://github.com/PauloCarneiro99/serverless-fargate-task/issues"
+  },
+  "homepage": "https://github.com/PauloCarneiro99/serverless-fargate-task#readme"
 }

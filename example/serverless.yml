@@ -1,0 +1,30 @@
+service: sls-example
+
+custom:
+  AWS_ACCOUNT: ABCDEF
+  STAGE: ${opt:stage, dev}
+
+  fargate:
+    - name: task-example
+      image: ${self:custom.AWS_ACCOUNT}.dkr.ecr.${self:provider.region}.amazonaws.com/fargate-test:latest
+      taskRoleArn: arn:aws:iam::${self:custom.AWS_ACCOUNT}:role/ecsTaskExecutionRole
+      executionRoleArn: arn:aws:iam::${self:custom.AWS_ACCOUNT}:role/ecsTaskExecutionRole
+      environment:
+        - name: stage
+          value: ${self:custom.STAGE}
+        - name: author
+          value: paulo
+
+provider:
+    name: aws
+    runtime: nodejs12.x
+    region: us-east-1
+
+plugins:
+    - serverless-fargate-task
+
+functions:
+    trigerFargate:
+        handler: index.handler
+        timeout: 100
+        memorySize: 192
